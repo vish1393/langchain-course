@@ -1,31 +1,37 @@
 from dotenv import load_dotenv
-from langchain_core.prompts import PromptTemplate
+from langchain.agents import create_agent
+from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_ollama import ChatOllama
+from langchain_tavily import TavilySearch
+import os
+
 load_dotenv()
 
+if not os.getenv("OPENAI_API_KEY"):
+    raise ValueError("OPENAI_API_KEY is not set")
+
+if not os.getenv("TAVILY_API_KEY"):
+    raise ValueError("TAVILY_API_KEY is not set")
+
+llm = ChatOpenAI(temperature=0, model="gpt-4o-mini")
+
+# ⭐ Correct: instantiate the tool
+tavily_tool = TavilySearch()
+
+tools = [tavily_tool]
+
+agent = create_agent(model=llm, tools=tools)
 
 def main():
     print("Hello from langchain-course!")
-    information = """
-    Elon Reeve Musk FRS (/ˈiːlɒn/ EE-lon; born June 28, 1971) is a businessman, known for his leadership of Tesla, SpaceX, X (formerly Twitter), and the Department of Government Efficiency (DOGE). Musk has been the wealthiest person in the world since 2021; as of May 2025, Forbes estimates his net worth to be US$424.7 billion.
-    """
-    summary_template = """
-    given the information {information} about a person I want you to create:
-    1. A short summary
-    2. two interesting facts about them
-    """
-    summary_prompt_template = PromptTemplate(
-        input_variables=["information"], template=summary_template
-    )
-
-    #llm = ChatOpenAI(temperature=0, model="gpt-4o-mini")
-    llm = ChatOllama(temperature=0, model="gemma3:270m")
-    chain = summary_prompt_template | llm
-    response = chain.invoke({"information": information})
-    print(response.content)
-
+    result = agent.invoke({
+        "messages": [
+            HumanMessage(
+                content="search for 3 job listings for an ai engineer using langchain in the bay area on linkedin and list their details"
+            )
+        ]
+    })
+    print(result)
 
 if __name__ == "__main__":
     main()
